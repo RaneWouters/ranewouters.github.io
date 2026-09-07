@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MRFNet: Multi-Reference Fusion for Image Deblurring — Tingrui Guo</title>
+  <meta name="description" content="MRFNet leverages any number of discontinuous reference images for image deblurring. Information Fusion 131 (2026) 104169.">
+  <meta name="theme-color" content="#ffffff">
+  <script>(function(){try{var s=localStorage.getItem('tg-theme');document.documentElement.setAttribute('data-theme',s||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'));}catch(e){document.documentElement.setAttribute('data-theme','light');}document.documentElement.classList.add('js');}());</script>
+  <link rel="stylesheet" href="../../assets/css/style.css">
+  <link rel="stylesheet" href="../../assets/css/paper.css">
+  <link rel="stylesheet" href="assets/paper.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23244a7c'/%3E%3Ctext x='32' y='44' font-family='Georgia,serif' font-size='34' fill='white' text-anchor='middle'%3ET%3C/text%3E%3C/svg%3E">
+  <script src="../../assets/js/main.js" defer></script>
+</head>
+<body class="paper-page">
+  <a class="skip-link" href="#main">Skip to main content</a>
+
+  <header class="site-nav">
+    <div class="container nav-inner">
+      <a class="brand" href="../../index.html">Tingrui Guo</a>
+      <div class="nav-right">
+        <button class="nav-toggle" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="primary-nav">
+          <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+          <svg class="close-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18"/></svg>
+        </button>
+        <nav class="nav-links" id="primary-nav" aria-label="Primary navigation">
+          <a href="../../index.html">Home</a>
+          <a href="../../publications.html">Publications</a>
+          <a href="../../projects.html" class="active" aria-current="page">Projects</a>
+        </nav>
+        <button class="theme-toggle" type="button" aria-label="Toggle dark mode">
+          <svg class="i-moon" viewBox="0 0 24 24"><path fill="currentColor" d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>
+          <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M19.4 4.6l-1.8 1.8M6.4 17.6l-1.8-1.8"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <header class="hero" id="top">
+    <div class="container">
+      <h1 class="title">MRFNet: Multi-Reference Fusion for Image Deblurring</h1>
+      <div class="authors">
+        Tingrui Guo<sup class="aff-1">1</sup><sup class="aff-sep">,</sup><sup class="aff-2">2</sup><sup class="aff-sep">,</sup><sup class="aff-3">3</sup><span class="author-sep">,</span>
+        Chi Xu<sup class="aff-1">1</sup><sup class="aff-sep">,</sup><sup class="aff-2">2</sup><sup class="aff-sep">,</sup><sup class="aff-3">3</sup><span class="author-sep">,</span>
+        Kaifeng Tang<sup class="aff-1">1</sup><sup class="aff-sep">,</sup><sup class="aff-2">2</sup><sup class="aff-sep">,</sup><sup class="aff-3">3</sup><span class="author-sep">, and</span>
+        Hao Qian<sup class="aff-1">1</sup><sup class="aff-sep">,</sup><sup class="aff-2">2</sup><sup class="aff-sep">,</sup><sup class="aff-3">3</sup>
+      </div>
+      <div class="affils">
+        <span class="aff-group"><sup class="aff-1">1</sup><span>School of Automation, China University of Geosciences, Wuhan 430074, China</span></span>
+        <span class="aff-group"><sup class="aff-2">2</sup><span>Hubei Key Laboratory of Advanced Control and Intelligent Automation for Complex Systems, Wuhan 430074, China</span></span>
+        <span class="aff-group"><sup class="aff-3">3</sup><span>Engineering Research Center of Intelligent Technology for Geo-Exploration, Ministry of Education, Wuhan 430074, China</span></span>
+      </div>
+      <div class="linkrow">
+        <a class="btn primary" href="https://doi.org/10.1016/j.inffus.2026.104169" target="_blank" rel="noopener">Paper ↗</a>
+        <a class="btn" href="https://github.com/RaneWouters/MRFNet" target="_blank" rel="noopener">Code ↗</a>
+        <a class="btn" href="https://huggingface.co/Rane1949/MRFNet" target="_blank" rel="noopener">Model · Hugging Face ↗</a>
+        <a class="btn" href="https://modelscope.cn/models/RaneWouters/MRFNet" target="_blank" rel="noopener">Model · ModelScope ↗</a>
+        <a class="btn" href="https://huggingface.co/Rane1949/MRFNet/tree/main/data/BlurCUG" target="_blank" rel="noopener">Data · Hugging Face ↗</a>
+        <a class="btn" href="https://modelscope.cn/models/RaneWouters/MRFNet/files?path=data/BlurCUG" target="_blank" rel="noopener">Data · ModelScope ↗</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <section id="abstract">
+      <div class="container">
+        <h2 class="sec"><span class="no">§</span>Abstract</h2>
+        <p class="abstract">Motion blur is a persistent challenge in visual data processing. While single-image deblurring methods have made significant progress, using multiple reference images from the same scene for deblurring remains an overlooked problem. Existing methods struggle to integrate information from multiple reference images with differences in lighting, color, and perspective. Herein, we propose a novel framework MRFNet which leverages any number of discontinuous reference images for deblurring. The framework consists of two key components: (1) the Offset Fusion Module (OFM) guided by dense matching, which aggregates features from discontinuous reference images through high-frequency detail enhancement and permutation-invariant units; and (2) the Deformable Enrichment Module (DEM), which refines misaligned features using deformable convolutions for precise detail recovery. Quantitative and qualitative evaluations on synthetic and real-world datasets show that the proposed method outperforms state-of-the-art deblurring approaches. Additionally, a new real-world dataset is provided to fill the gap in evaluating discontinuous reference problems.</p>
+        <div class="stats">
+          <div class="stat reveal"><b>+1.26 dB</b><span>PSNR over no-reference at 5 refs (MegaDepth)</span></div>
+          <div class="stat reveal"><b>any k</b><span>number of discontinuous references, one model</span></div>
+          <div class="stat reveal"><b>1 ref</b><span>already beats the best single-image SOTA (RealBlur-J)</span></div>
+          <div class="stat reveal"><b>BlurCUG</b><span>new real-world benchmark for discontinuous references</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="why">
+      <div class="container">
+        <h2 class="sec"><span class="no">§0</span>Why multiple references?</h2>
+        <p class="lede">A browser-rendered explanatory simulation: one virtual scene, one blurry input, and five imperfect views that each carry a different piece of the missing detail.</p>
+        <div class="demo-card ref-sim-card">
+          <div class="ref-sim-head">
+            <div>
+              <p class="sim-kicker">Explanatory simulation</p>
+              <h3 class="serif">The views disagree — the scene structure does not.</h3>
+            </div>
+            <span class="sim-status" id="sim-status">0 / 5 references selected</span>
+          </div>
+          <div class="sim-topline">
+            <article class="sim-pane">
+              <div class="sim-pane-head"><span class="sim-label">Input image</span><span class="sim-chip">blurred capture</span></div>
+              <div class="sim-scene-frame"><canvas id="sim-target" role="img" aria-label="A synthetic blurred street scene with missing fine detail"></canvas></div>
+              <p class="sim-pane-note">The input is deliberately blurred, so lettering, edges, and texture are only partially visible.</p>
+            </article>
+            <div class="sim-join" aria-hidden="true"><span>+</span><small>complementary views</small><b>→</b></div>
+            <article class="sim-pane sim-output-pane">
+              <div class="sim-pane-head"><span class="sim-label">Combined detail</span><span class="sim-chip sim-chip-accent" id="sim-output-state">0 contributions</span></div>
+              <div class="sim-scene-frame"><canvas id="sim-output" role="img" aria-label="A synthetic scene that progressively reveals detail from selected references"></canvas></div>
+              <p class="sim-pane-note" id="sim-output-note">Select a reference below to reveal the region it can help recover.</p>
+            </article>
+          </div>
+          <div class="sim-reference-area">
+            <div class="sim-reference-head"><div><span class="sim-label">Five discontinuous references</span><span class="sim-sub">same scene · different viewpoints and capture conditions</span></div><div class="sim-controls"><button class="btn-mini" id="sim-all" type="button">add all</button><button class="btn-mini" id="sim-reset" type="button">reset</button></div></div>
+            <div class="sim-reference-grid" id="sim-refs">
+              <button class="sim-ref tone-warm" type="button" data-ref="1" aria-pressed="false" aria-label="Reference 1, near viewpoint, contributes signboard lettering"><canvas class="sim-ref-canvas" aria-hidden="true"></canvas><span class="sim-ref-meta"><strong>Ref 1</strong><small>near view · lettering</small></span></button>
+              <button class="sim-ref tone-blue" type="button" data-ref="2" aria-pressed="false" aria-label="Reference 2, left-angle viewpoint, contributes window structure"><canvas class="sim-ref-canvas" aria-hidden="true"></canvas><span class="sim-ref-meta"><strong>Ref 2</strong><small>left angle · windows</small></span></button>
+              <button class="sim-ref tone-violet" type="button" data-ref="3" aria-pressed="false" aria-label="Reference 3, right-angle viewpoint, contributes brick texture"><canvas class="sim-ref-canvas" aria-hidden="true"></canvas><span class="sim-ref-meta"><strong>Ref 3</strong><small>right angle · brickwork</small></span></button>
+              <button class="sim-ref tone-orange" type="button" data-ref="4" aria-pressed="false" aria-label="Reference 4, low-angle viewpoint, contributes lamp detail"><canvas class="sim-ref-canvas" aria-hidden="true"></canvas><span class="sim-ref-meta"><strong>Ref 4</strong><small>low angle · lamp</small></span></button>
+              <button class="sim-ref tone-green" type="button" data-ref="5" aria-pressed="false" aria-label="Reference 5, wide framing, contributes foliage texture"><canvas class="sim-ref-canvas" aria-hidden="true"></canvas><span class="sim-ref-meta"><strong>Ref 5</strong><small>wide framing · foliage</small></span></button>
+            </div>
+          </div>
+          <p class="figcap"><b>How to read the simulation.</b> Select references to reveal their complementary regions in the right-hand scene. The canvas drawings are an explanatory simulation, not a paper result or a reconstruction produced by MRFNet.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="demo">
+      <div class="container">
+        <h2 class="sec"><span class="no">§1</span>Add references, watch the text come back</h2>
+        <p class="lede">One real scene from the repository, shown as an aligned comparison. The blurry input stays visible on the left; drag the ruler or jump between zero references and four references.</p>
+        <div class="demo-card recovery-card">
+          <div class="recovery-head">
+            <div><p class="sim-kicker">Real repository result</p><h3 class="serif">Same input, different reference count</h3></div>
+            <div class="recovery-actions" role="group" aria-label="Choose comparison state"><button class="btn-mini" id="recovery-zero" type="button">0 references</button><button class="btn-mini" id="recovery-four" type="button">4 references</button></div>
+          </div>
+          <div class="recovery-layout">
+            <aside class="recovery-sources" aria-label="Input image">
+              <div class="recovery-source-card recovery-input-card">
+                <div class="recovery-source-head"><div><span class="sim-label">Input image</span><span class="sim-sub">one blurry capture</span></div><span class="recovery-count">input</span></div>
+                <div class="recovery-source-frame"><img class="recovery-input-image" src="assets/img/recovery-input.png" alt="Blurry input image of a building inscription" loading="lazy"></div>
+              </div>
+            </aside>
+            <div class="recovery-viewer">
+              <div class="recovery-viewer-head"><span class="sim-label">Restoration comparison</span><span class="sim-chip sim-chip-accent">aligned scene crop</span></div>
+              <div class="recovery-stage" id="recovery-stage">
+                <img class="recovery-image" id="recovery-left" src="assets/img/recovery-four.png" alt="MRFNet restoration with four references">
+                <div class="recovery-after" id="recovery-after"><img class="recovery-image" id="recovery-right" src="assets/img/recovery-zero.png" alt="MRFNet restoration with zero references"></div>
+                <div class="recovery-divider" id="recovery-divider" role="slider" tabindex="0" aria-label="Comparison ruler" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50"></div>
+                <span class="recovery-label recovery-label-left">4 references</span><span class="recovery-label recovery-label-right" id="recovery-right-label">0 references</span>
+              </div>
+              <div class="recovery-range"><label for="recovery-split">Drag to compare <span id="recovery-readout">4 references ↔ 0 references</span></label><input id="recovery-split" type="range" min="0" max="100" value="50" aria-label="Comparison position between four and zero references"></div>
+            </div>
+          </div>
+          <p class="figcap" id="recovery-cap"><b>Real paper result.</b> Both sides use the same blurry frame. The four-reference restoration is on the left; moving right reveals the zero-reference result, where the signboard lettering remains soft.</p>
+        </div>
+        <noscript><figure class="paperfig"><img src="assets/img/mrfnet_text_recovery.png" alt="Blurry input, zero-reference restoration, and four-reference restoration" loading="lazy"><figcaption class="figcap"><b>Repository comparison.</b> Blurry input, zero-reference restoration, and four-reference restoration.</figcaption></figure></noscript>
+      </div>
+    </section>
+
+    <section id="qualitative">
+      <div class="container">
+        <h2 class="sec"><span class="no">§2</span>What it looks like</h2>
+        <p class="lede">Across every regime the paper tests — continuous real blur, synthetic sequences, discontinuous references, even defocus — the pattern repeats: where single-image methods over-smooth, fusing sharp references brings texture back.</p>
+        <div class="fig-grid2">
+          <figure class="paperfig"><img src="assets/paper/fig6_realblurj.png" alt="Qualitative comparison on RealBlur-J" loading="lazy"><figcaption class="figcap"><b>Real-world motion blur.</b> Natural textures return where baselines smear — text regions and high-frequency structure especially.</figcaption></figure>
+          <figure class="paperfig"><img src="assets/paper/fig7_synthetic.png" alt="Qualitative comparison on the synthetic dataset" loading="lazy"><figcaption class="figcap"><b>Synthetic benchmark.</b> In heavily blurred regions the multi-reference result stays faithful while single-image methods lose structure entirely.</figcaption></figure>
+          <figure class="paperfig"><img src="assets/paper/fig8_blurcug_trim.png" alt="Qualitative results on BlurCUG" loading="lazy"><figcaption class="figcap"><b>BlurCUG — our new real-world benchmark</b> for discontinuous references (<a class="badge" href="https://huggingface.co/Rane1949/MRFNet/tree/main/data/BlurCUG" target="_blank" rel="noopener">🤗 dataset</a> <a class="badge" href="https://modelscope.cn/models/RaneWouters/MRFNet/files?path=data/BlurCUG" target="_blank" rel="noopener">ModelScope</a>). One of the paper's three example scenes shown. Despite color and perspective gaps between inputs and references, MRFNet stays sharp.</figcaption></figure>
+          <figure class="paperfig"><img src="assets/paper/fig11_defocus.png" alt="Performance on defocus blur" loading="lazy"><figcaption class="figcap"><b>Beyond motion blur.</b> The same framework transfers to defocus blur without rethinking the pipeline.</figcaption></figure>
+        </div>
+      </div>
+    </section>
+
+    <section id="principle">
+      <div class="container">
+        <h2 class="sec"><span class="no">§3</span>How it works</h2>
+        <div class="demo-card principle-card">
+          <p class="lede">The architecture from the paper (Fig. 3): match, fuse, then refine.</p>
+          <img id="principle-fig" src="assets/paper/fig3_arch.png" alt="MRFNet architecture — paper Fig. 3" loading="lazy">
+          <p class="figcap"><b>Fig. 3 — the MRFNet architecture.</b> Each reference first passes a frozen dense matcher (RoMa) to produce per-pixel correspondences. The <b>OFM</b> enhances high-frequency detail of the aligned features and aggregates any number of references with <i>permutation-invariant</i> units — feeding order never changes the output. The <b>DEM</b> then runs an asymmetric encoder–decoder whose CFAB blocks (MBConv → FFN → deformable convolution) adapt their sampling locations to absorb residual misalignment, yielding the sharp image.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="cite">
+      <div class="container">
+        <h2 class="sec"><span class="no">§4</span>Citation</h2>
+        <div class="bibbox" id="bibbox"><button class="chip-btn copy-btn" id="bib-copy" type="button">Copy</button><pre class="code">@article{guo2026mrfnet,
+  title   = {MRFNet: Multi-reference fusion for image deblurring},
+  author  = {Guo, Tingrui and Xu, Chi and Tang, Kaifeng and Qian, Hao},
+  journal = {Information Fusion},
+  volume  = {131},
+  pages   = {104169},
+  year    = {2026},
+  doi     = {10.1016/j.inffus.2026.104169}
+}</pre></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <span>© <span data-year>2026</span> Tingrui Guo · MRFNet</span>
+      <span>Information Fusion 131 (2026) 104169</span>
+    </div>
+  </footer>
+
+  <script src="assets/main.js" defer></script>
+</body>
+</html>

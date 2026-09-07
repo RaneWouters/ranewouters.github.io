@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A Hough Voting-Based 2-Point RANSAC Solution to the Perspective-n-Point Problem</title>
+<meta name="description" content="An interactive explanation of a Hough voting-based 2-point RANSAC solution for robust Perspective-n-Point estimation under ultra-high outlier rates and near-degenerate configurations.">
+<meta name="theme-color" content="#ffffff">
+<script>(function(){try{var s=localStorage.getItem('tg-theme');document.documentElement.setAttribute('data-theme',s||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'));}catch(e){document.documentElement.setAttribute('data-theme','light');}document.documentElement.classList.add('js');}());</script>
+<link rel="stylesheet" href="../../assets/css/style.css">
+<link rel="stylesheet" href="assets/paper.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📷</text></svg>">
+</head>
+<body class="paper-page">
+<a class="skip-link" href="#main">Skip to main content</a>
+
+<!-- ============================= NAV ============================= -->
+<header class="site-nav">
+  <div class="container nav-inner">
+    <a class="brand" href="../../index.html">Tingrui Guo</a>
+    <div class="nav-right">
+      <button class="nav-toggle" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="paper-nav">
+        <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        <svg class="close-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18"/></svg>
+      </button>
+      <nav class="nav-links" id="paper-nav" aria-label="Primary navigation">
+        <a href="../../index.html">Home</a>
+        <a href="../../publications.html">Publications</a>
+        <a href="../../projects.html" class="active" aria-current="page">Projects</a>
+      </nav>
+      <button class="theme-toggle" type="button" aria-label="Toggle dark mode">
+        <svg class="i-moon" viewBox="0 0 24 24"><path fill="currentColor" d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>
+        <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.4"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M19.4 4.6l-1.8 1.8M6.4 17.6l-1.8-1.8"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- ============================ HERO ============================= -->
+<header class="hero" id="top">
+  <div class="container">
+    <h1 class="title">A Hough Voting-Based 2-Point RANSAC Solution to the&nbsp;Perspective-n-Point Problem</h1>
+    <div class="authors">
+      Chi Xu<sup class="aff-1">1</sup><sup class="aff-sep">,</sup><sup class="aff-2">2</sup><sup class="aff-sep">,</sup><sup class="aff-3">3</sup><span class="author-sep">,</span>
+      Tingrui Guo<sup class="aff-1">1</sup><sup class="aff-sep">,</sup><sup class="aff-2">2</sup><sup class="aff-sep">,</sup><sup class="aff-3">3</sup><span class="author-sep">,</span>
+      Yuan Huang<sup class="aff-1">1</sup><sup class="aff-sep">,</sup><sup class="aff-2">2</sup><sup class="aff-sep">,</sup><sup class="aff-3">3</sup><span class="author-sep">, and</span>
+      Li Cheng<sup class="aff-4">4</sup>
+    </div>
+    <div class="affils">
+      <span class="aff-group"><sup class="aff-1">1</sup><span>School of Automation, China University of Geosciences, Wuhan, China</span></span>
+      <span class="aff-group"><sup class="aff-2">2</sup><span>Hubei Key Laboratory of Advanced Control and Intelligent Automation for Complex Systems, Wuhan, China</span></span>
+      <span class="aff-group"><sup class="aff-3">3</sup><span>Engineering Research Center of Intelligent Technology for Geo-Exploration, Ministry of Education, Wuhan, China</span></span>
+      <span class="aff-group"><sup class="aff-4">4</sup><span>Department of Electrical and Computer Engineering, University of Alberta, Edmonton, AB, Canada</span></span>
+    </div>
+    <div class="linkrow">
+      <a class="btn primary" href="https://doi.org/10.1109/TIP.2025.3622336" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24"><path d="M21 5c-1.1-.35-2.3-.54-3.5-.54-1.95 0-4.05.4-5.5 1.5-1.45-1.1-3.55-1.5-5.5-1.5S2.45 4.9 1 6v14.65c0 .25.25.5.5.5.1 0 .15-.05.25-.05C3.1 20.45 5.05 20 6.5 20c1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.3 4.75 1.05.1.05.15.05.25.05.25 0 .5-.25.5-.5V6c-.6-.45-1.25-.75-2-1zm0 13.5c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V8c1.35-.85 3.8-1.5 5.5-1.5 1.2 0 2.4.15 3.5.5v11.5z"/></svg>
+        Paper
+      </a>
+      <a class="btn" href="https://github.com/RaneWouters/RPnP_plusplus" target="_blank" rel="noopener" aria-label="C++ code" title="C++ code">
+        <svg viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+        Code (C++)
+      </a>
+      <a class="btn" href="https://github.com/xuchi7/RPnP_plusplus" target="_blank" rel="noopener">
+        <svg viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4-.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+        Code (MATLAB)
+      </a>
+      <a class="btn" href="https://pypi.org/p/rpnp-pp" target="_blank" rel="noopener" aria-label="RPnP++ on PyPI" title="RPnP++ on PyPI">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M23.922 13.58v3.912L20.55 18.72l-.078.055.052.037 3.45-1.256.026-.036v-3.997l-.053-.036-.025.092zM23.621 5.618l-3.04 1.107v3.912l3.339-1.215V5.509zM23.92 13.457V9.544l-3.336 1.215v3.913zM20.47 14.71V10.8L17.17 12v3.913zM17.034 19.996v-3.912l-3.313 1.206v3.912zM17.17 16.057v3.868l3.314-1.206V14.85l-3.314 1.206zm2.093 1.882c-.367.134-.663-.074-.663-.463s.296-.814.663-.947c.365-.133.662.075.662.464s-.297.814-.662.946zM13.225 9.315l.365-.132-3.285-1.197-3.323 1.21.102.037 3.184 1.16zM20.507 10.664V6.751L17.17 7.965v3.913zM17.058 11.918V8.005l-3.302 1.202v3.912zM13.643 9.246l-3.336 1.215v3.913l3.336-1.215zM6.907 13.165l3.322 1.209v-3.913L6.907 9.252zM10.34 7.873l3.281 1.193V5.198l-3.28-1.193zM20.507 2.715L17.19 3.922v3.913l3.317-1.207zM16.95 3.903L13.724 2.73l-3.269 1.19 3.225 1.174zM15.365 4.606l-1.624.592v3.868l3.317-1.207V3.991l-1.693.615zm-.391 2.778c-.367.134-.662-.074-.662-.464s.295-.813.662-.946c.366-.133.663.074.663.464s-.297.814-.663.946zM10.229 18.41v-3.914l-3.322-1.209V17.2zM13.678 17.182v-3.913l-3.371 1.227v3.913zM13.756 17.154l3.3-1.2V12.04l-3.3 1.2zM13.678 21.217l-3.371 1.227v-3.912h-.078v3.912l-3.322-1.209v-3.913l-.053-.058-.025-.06-3.336-1.21v-3.948l.034.013 3.287 1.196.015-.078-3.261-1.187 3.26-1.187v-.109L3.876 9.62l-.307-.112 3.26-1.188v.877l.079-.055V6.769l3.257 1.185.058-.061L7.084 6.75l-.102-.037 3.24-1.179v-.083L6.854 6.677v.018l-.025.018v1.523L3.44 9.47v.02l-.025.017v4.007l-3.39 1.233v.019L0 14.784v3.995l.025.037 3.4 1.237.008-.006.007.01 3.4 1.238.008-.006.006.01 3.4 1.237.014-.009.012.01 3.45-1.256.026-.037-.078-.027zM3.493 9.563l3.257 1.185-3.257 1.187V9.562zM3.4 19.96L.078 18.752v-3.913l2.361.86.96.349v3.913zm.015-3.99L.335 14.85l-.182-.066 3.262-1.187v2.374zm3.399 5.231-3.321-1.209v-3.912l3.321 1.209v3.912zM23.791 5.434l-3.21-1.17v2.338zM20.387 2.643l-3.24-1.18-3.27 1.19 3.247 1.182z"/></svg>
+        PyPI
+      </a>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+<!-- ========================== ABSTRACT =========================== -->
+<section id="abstract">
+  <div class="container">
+    <h2 class="sec"><span class="no">§</span>Abstract</h2>
+    <p class="abstract lead" style="max-width:72em">
+      Perspective-n-point is a fundamental problem in multi-view geometry, yet two critical challenges persist: 1) The
+      issues of high outlier rate and near degenerate cases exert a substantial impact on the robustness of existing PnP
+      methods. In the worst-case where both issues are in presence, existing methods tend to either produce erroneous
+      results or become computationally prohibitive. 2) Conventionally, the hypothetical pose with the maximum
+      inlier-set is assumed to be correct. However, it remains unclear whether this assumption holds when the outlier
+      rate approaches ultra-high levels, and along this line what is the maximum amount of outliers that can be robustly
+      handled. To address these challenges, this paper proposes a novel Hough voting based 2-point RANSAC solution. To
+      our knowledge, it is the first PnP solution capable of accurately and efficiently handling high outlier rates in
+      near-degenerate cases. Extensive empirical evaluations have been conducted using the proposed approach, with a
+      particular focus on a systematic examination under ultra-high outlier rates. The results show that, on random
+      synthetic data, our approach works robustly even when dealing with up to 99% outliers. Meanwhile on real-world
+      datasets, the maximum inlier-set assumption oftentimes fails when the outlier rate exceeds 97%, as the incorrect
+      hypothetical poses may yield more inliers than the ground-truths.
+    </p>
+
+    <div class="highlights benchmark-advantages" aria-label="RPnP++ synthetic benchmark advantages">
+      <article class="advantage-card">
+        <div class="advantage-label">01 / Outlier tolerance</div>
+        <h4>A wider usable outlier range</h4>
+        <div class="advantage-stat">90% &rarr; 97% <span>baseline limit to RPnP++</span></div>
+        <p>Most existing methods fail above 90% outliers. RPnP++ remains accurate up to 97% across all three scenes.</p>
+      </article>
+      <article class="advantage-card">
+        <div class="advantage-label">02 / Accuracy advantage</div>
+        <h4>High-outlier accuracy gain</h4>
+        <div class="advantage-stat">+10–80% <span>accuracy gain at 95% outliers</span></div>
+        <p>Across 80–95% outliers, RPnP++ gains 0–80 percentage points over the best competing method. At 95%, the gain is 10–80 points.</p>
+      </article>
+      <article class="advantage-card">
+        <div class="advantage-label">03 / Speed advantage</div>
+        <h4>Faster at matched accuracy</h4>
+        <div class="advantage-stat">up to 800&times; <span>faster on synthetic tests</span></div>
+        <p>Across the paired 5–95% range, RPnP++ reaches up to 800&times; speedup while preserving comparable or better pose accuracy.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ====================== FLAGSHIP PIPELINE DEMO =================== -->
+<section id="demo">
+  <div class="container">
+    <h2 class="sec"><span class="no">1</span>Watch It Run</h2>
+
+    <div class="demo-card">
+      <div class="viz-holder" id="viz-pipeline" style="height:470px">
+        <div class="viz-badge" id="pipe-badge">drag to orbit · step ①</div>
+      </div>
+      <div class="pipe-steps">
+        <button class="chip-btn step-tab active" data-step="A">① Task</button>
+        <button class="chip-btn step-tab" data-step="B">② Vote</button>
+        <button class="chip-btn step-tab" data-step="C">③ Refine</button>
+        <span class="readout" id="pipe-readout" style="margin-left:auto">–</span>
+      </div>
+      <p class="pipe-cap" id="pipe-cap"></p>
+      <div class="controls">
+        <div class="ctrl">
+          <label for="pp-config">Configuration</label>
+          <select id="pp-config">
+            <option value="ordinary">Ordinary 3D</option>
+            <option value="quasi">Quasi-singular</option>
+            <option value="planar">Planar</option>
+          </select>
+        </div>
+        <div class="ctrl">
+          <label for="pp-outliers">Wrong matches</label>
+          <input type="range" id="pp-outliers" min="0" max="95" value="50" step="5">
+          <span class="val" id="pp-outliers-val">50%</span>
+        </div>
+        <div class="ctrl">
+          <button class="chip-btn primary active" id="pp-run">⏸ Pause motion</button>
+          <button class="chip-btn" id="pp-newdata">New data</button>
+        </div>
+      </div>
+    </div>
+    <p class="figcap"><b>Interactive Figure 1.</b> The same correspondences feed Task, Vote, and Refine. Vote replays every valid PST candidate from a data-only two-point trial; Refine replays the production dynamic soft-weighted Gauss–Newton schedule <span class="mono">[3, 4, ∞]</span>. Select a stage and replay it independently; the solver sees only the matches, not the explanatory inlier labels.</p>
+  </div>
+</section>
+
+<!-- ===================== WHY 2 POINTS ============================ -->
+<section id="why2pt">
+  <div class="container">
+    <h2 class="sec"><span class="no">2</span>Precision &amp; Speed</h2>
+
+    <p>Fewer points per RANSAC sample make high-outlier estimation practical. The plots below separate the revised synthetic benchmark from the paper's real-image evidence.</p>
+
+    <h3 class="benchmark-subtitle"><span class="benchmark-index">2.1</span> Synthetic benchmark</h3>
+    <p class="benchmark-note">Revised C++ benchmark: three scene configurations, seven outlier rates, and ten trials per setting. “Accurate” means rotation error &lt; 5&deg; and relative translation error &lt; 10%; timing is full Python-call wall time.</p>
+
+    <div class="synthetic-fig-stack">
+      <figure class="paper-fig">
+        <img src="assets/paper/synthetic_paper_style_accuracy.png" alt="Synthetic benchmark accuracy comparison across ordinary, quasi-singular and planar scenes" loading="lazy">
+        <figcaption><b>Figure 2 — Synthetic accuracy benchmark.</b> Median rotation and translation errors and accurate-pose rate across the revised test suite; all panels share outlier rate (%) on the x-axis. The true-inlier-recall row is omitted for a more focused comparison.</figcaption>
+      </figure>
+      <figure class="paper-fig">
+        <img src="assets/paper/synthetic_time_comparison.png" alt="Synthetic benchmark runtime comparison across outlier rates" loading="lazy">
+        <figcaption><b>Figure 3 — Synthetic runtime benchmark.</b> Median wall time as the outlier rate increases; RPnP++ remains practical at the high-outlier end.</figcaption>
+      </figure>
+    </div>
+
+    <blockquote class="benchmark-quote">
+      <p><b>Takeaway.</b> Above 90% outlier rate, most existing methods fail to produce usable poses, while RPnP++ remains accurate up to 97% across all three scene configurations.</p>
+    </blockquote>
+    <h3 class="benchmark-subtitle"><span class="benchmark-index">2.2</span> Real benchmark</h3>
+    <p class="benchmark-note">The following figures retain the page's existing real-image comparison material.</p>
+
+    <div class="fig-grid">
+      <figure class="paper-fig">
+        <img src="assets/paper/fig2_real_scatter.png" alt="Time vs. accuracy scatter on the wide-baseline dataset">
+        <figcaption><b>Figure 4 — Runtime vs. accuracy on real images.</b> Time&ndash;accuracy scatter over the
+        wide-baseline image-matching dataset (1000 pairs), reproduced from the paper's Fig.&thinsp;2.
+        Ours occupies the desirable corner: accuracy on par with methods an order of magnitude slower.</figcaption>
+      </figure>
+      <figure class="paper-fig">
+        <img src="assets/paper/fig12_d_time.png" alt="Distribution of computational time on real images">
+        <figcaption><b>Figure 5 — Computational-time distribution on real images.</b> Distribution of the
+        compared solvers' runtimes on the wide-baseline image-matching dataset, reproduced from Fig.&thinsp;12(d)
+        of the TIP2025 paper.</figcaption>
+      </figure>
+      <figure class="paper-fig wide">
+        <div class="triptych">
+          <figure><img src="assets/paper/fig12_a.png" alt="Rotation error curves on real images"><figcaption>(a) rotation error</figcaption></figure>
+          <figure><img src="assets/paper/fig12_b.png" alt="Translation error curves on real images"><figcaption>(b) translation error</figcaption></figure>
+          <figure><img src="assets/paper/fig12_c.png" alt="Accuracy of detected inliers on real images"><figcaption>(c) accuracy of detected inliers</figcaption></figure>
+        </div>
+        <figcaption><b>Figure 6 — Accuracy on real images.</b> Quantitative comparison on the
+        wide-baseline image-matching dataset: rotation-error, translation-error and detected-inlier-accuracy
+        curves for every method. Ours is consistently among the most accurate across all three measures.</figcaption>
+      </figure>
+    </div>
+
+    <blockquote class="benchmark-quote">
+      <p>On the real-image benchmark, RPnP++ delivers the best accuracy among the compared methods. Compared with RSC(RP4P)+OGN, which is the most accurate competing method, RPnP++ is approximately <strong>100&times;</strong> faster.</p>
+    </blockquote>
+  </div>
+</section>
+
+<!-- ========================= RESULTS ============================= -->
+<section id="results">
+  <div class="container">
+    <h2 class="sec"><span class="no">3</span>Experimental Evidence — Qualitative Results</h2>
+    <p>Selected qualitative results from the paper's real-image and AR evaluations.</p>
+
+    <div class="paperfig">
+      <img src="assets/fig/fig1_teaser.png" alt="Real-world robustness" loading="lazy">
+      <figcaption><b>Real-world robustness.</b> Pose estimation under occlusion, snow/rain, motion blur and window
+      reflections. Blue: reprojected model points from the estimated pose; green: detected inliers — note how few suffice.</figcaption>
+    </div>
+
+    <div class="paperfig narrow" style="margin-top:20px">
+      <img src="assets/fig/fig15_ar.png" alt="AR application" loading="lazy">
+      <figcaption><b>Indoor AR.</b> Virtual objects anchored through the estimated pose.</figcaption>
+    </div>
+
+  </div>
+</section>
+
+<!-- ========================= CITATION ============================ -->
+<section id="cite">
+  <div class="container">
+    <h2 class="sec"><span class="no">§</span>Citation</h2>
+    <div class="bib">
+      <button class="chip-btn copy-btn" id="bib-copy">Copy</button>
+<pre class="code" id="bib-text">@article{xu2025hough,
+  title   = {A Hough Voting-Based 2-Point {RANSAC} Solution to the
+             Perspective-n-Point Problem},
+  author  = {Xu, Chi and Guo, Tingrui and Huang, Yuan and Cheng, Li},
+  journal = {IEEE Transactions on Image Processing},
+  volume  = {34},
+  pages   = {6838--6851},
+  year    = {2025},
+  doi     = {10.1109/TIP.2025.3622336}
+}</pre>
+    </div>
+  </div>
+</section>
+
+ </main>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-inner">
+      <span>Project page · IEEE TIP 2025</span>
+      <span>Code: <a href="https://github.com/xuchi7/RPnP_plusplus" target="_blank" rel="noopener">xuchi7/RPnP_plusplus</a> · MATLAB implementation from the paper</span>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/three.min.js" defer></script>
+<script src="assets/pst_core.js" defer></script>
+<script src="../../assets/js/main.js" defer></script>
+<script src="assets/main.js" defer></script>
+</body>
+</html>
