@@ -94,7 +94,7 @@
         <li><time class="news-time" datetime="2026-07">2026.07</time><span class="txt"><strong>MRFNet</strong> was published in <strong><em>Information Fusion</em></strong>; the paper introduces multi-reference deblurring for arbitrary numbers of discontinuous reference images.</span></li>
         <li><time class="news-time" datetime="2026-06">2026.06</time><span class="txt">Our work on <strong>category-level articulated object pose estimation</strong> was accepted to <strong><em>ECCV 2026</em></strong>, combining pose-shape hypothesis generation, point cloud denoising, and consistency verification.</span></li>
         <li><time class="news-time" datetime="2026-03">2026.03</time><span class="txt"><strong>VPHO</strong> was published in <strong><em>AAAI 2026</em></strong>, combining visual and physical cues for accurate and physically plausible hand-object pose estimation.</span></li>
-        <li><time class="news-time" datetime="2025-10">2025.10</time><span class="txt"><strong>RPnP++</strong> was published in <strong><em>IEEE Transactions on Image Processing</em></strong>, with robust performance under ultra-high outlier rates and up to 100× faster runtime than RANSAC-RP4P at high outlier rates.</span></li>
+        <li><time class="news-time" datetime="2025-10">2025.10</time><span class="txt"><strong>RPnP++</strong> was published in <strong><em>IEEE Transactions on Image Processing</em></strong>, with robust performance under ultra-high outlier rates and approximately 100× faster runtime than RSC(RP4P)+OGN on the paper’s real-image benchmark.</span></li>
       </ul>
       <button class="link-btn no-print" type="button" data-toggle aria-expanded="false"></button>
     </section>
@@ -117,7 +117,7 @@
           <div>
             <div class="pub-title"><a href="projects/rpnp_pp/index.html">A Hough Voting-Based 2-Point RANSAC Solution to the Perspective-n-Point Problem</a></div>
             <p class="pub-authors">Chi Xu, <strong>Tingrui Guo</strong>, Yuan Huang, and Li Cheng <span class="author-note">· First student author</span></p>
-            <p class="pub-summary">A Hough-voting 2-point RANSAC solver that remains accurate in near-degenerate, high-outlier settings while running up to 100× faster than RANSAC-RP4P at high outlier rates.</p>
+            <p class="pub-summary">Sample two matches. Let the rest vote for the camera pose. Robust in high-outlier, near-degenerate scenes; ≈100× faster than RSC(RP4P)+OGN on the paper’s real-image benchmark.</p>
             <div class="pub-meta"><span class="pill pill-venue">TIP 2025</span><span class="pill pill-ccf">CCF-A</span><span class="pill pill-cas">CAS T1 (Top)</span><span class="pill pill-if">IF=13.7</span></div>
             <div class="pub-links"><a href="https://doi.org/10.1109/TIP.2025.3622336" target="_blank" rel="noopener">Paper</a><a href="https://github.com/RaneWouters/RPnP_plusplus" target="_blank" rel="noopener">Code</a><a href="projects/rpnp_pp/index.html">Project page</a></div>
           </div>

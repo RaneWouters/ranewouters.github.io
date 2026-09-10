@@ -94,46 +94,58 @@
       hypothetical poses may yield more inliers than the ground-truths.
     </p>
 
-    <div class="highlights benchmark-advantages" aria-label="RPnP++ synthetic benchmark advantages">
-      <article class="advantage-card">
-        <div class="advantage-label">01 / Outlier tolerance</div>
-        <h4>A wider usable outlier range</h4>
-        <div class="advantage-stat">90% &rarr; 97% <span>baseline limit to RPnP++</span></div>
-        <p>Most existing methods fail above 90% outliers. RPnP++ remains accurate up to 97% across all three scenes.</p>
-      </article>
-      <article class="advantage-card">
-        <div class="advantage-label">02 / Accuracy advantage</div>
-        <h4>High-outlier accuracy gain</h4>
-        <div class="advantage-stat">+10–80% <span>accuracy gain at 95% outliers</span></div>
-        <p>Across 80–95% outliers, RPnP++ gains 0–80 percentage points over the best competing method. At 95%, the gain is 10–80 points.</p>
-      </article>
-      <article class="advantage-card">
-        <div class="advantage-label">03 / Speed advantage</div>
-        <h4>Faster at matched accuracy</h4>
-        <div class="advantage-stat">up to 800&times; <span>faster on synthetic tests</span></div>
-        <p>Across the paired 5–95% range, RPnP++ reaches up to 800&times; speedup while preserving comparable or better pose accuracy.</p>
-      </article>
+    <div class="highlights benchmark-advantages method-cards" aria-label="Three key method designs">
+      <article class="advantage-card"><div class="advantage-label">01 / Sample</div><h3>Two matches, one shared edge</h3><p>Sampling fewer matches makes an all-correct sample much more likely at high outlier rates. The remaining matches still contribute to solving the pose.</p></article>
+      <article class="advantage-card"><div class="advantage-label">02 / Vote</div><h3>Find agreement in two dimensions</h3><p>Each remaining match forms a triangle with the shared edge. Perspective-similar-triangle constraints map its candidates into a common 2D voting space.</p></article>
+      <article class="advantage-card"><div class="advantage-label">03 / Refine</div><h3>Keep alternatives, then refine</h3><p>Retain significant voting peaks to explore ambiguous poses in near-degenerate scenes. Soft-weighted optimization refines candidates while reducing the influence of large residuals.</p></article>
     </div>
+  </div>
+</section>
+
+<section id="sampling">
+  <div class="container">
+    <h2 class="sec"><span class="no">1</span>Why Sample Only Two?</h2>
+    <p>At <strong>95% outliers</strong>, only 5% of matches are correct. A useful RANSAC sample needs <em>every sampled match</em> to be correct. Reducing the sample size changes those odds dramatically.</p>
+    <div class="sampling-panel">
+      <div class="controls"><div class="ctrl"><label for="sample-outliers">Outlier rate</label><input id="sample-outliers" type="range" min="0" max="99" step="1" value="95" aria-describedby="sampling-assumptions"><output class="val" id="sample-outliers-value" for="sample-outliers">95%</output></div><span id="sample-inliers">5% correct matches</span></div>
+      <div class="sampling-grid" aria-label="Probability that every sampled match is correct">
+        <article class="sample-card sample-ours"><h3>2 matches <span>RPnP++</span></h3><div class="sample-prob" id="sample-prob-2">0.25%</div><p>chance all are correct</p><div class="sample-trials"><strong id="sample-trials-2">400</strong><span>trials on average to draw one</span></div></article>
+        <article class="sample-card"><h3>3 matches</h3><div class="sample-prob" id="sample-prob-3">0.0125%</div><p>chance all are correct</p><div class="sample-trials"><strong id="sample-trials-3">8,000</strong><span>trials on average to draw one</span></div></article>
+        <article class="sample-card"><h3>4 matches</h3><div class="sample-prob" id="sample-prob-4">0.000625%</div><p>chance all are correct</p><div class="sample-trials"><strong id="sample-trials-4">160,000</strong><span>trials on average to draw one</span></div></article>
+      </div>
+      <p class="sampling-takeaway" id="sample-takeaway" aria-live="polite">At 95% outliers, an all-correct sample is approximately <strong>20× more likely</strong> with two matches than with three, and <strong>400× more likely</strong> than with four.</p>
+    </div>
+    <p class="benchmark-note" id="sampling-assumptions">Using the independent-draw approximation: P(all correct) ≈ w<sup>s</sup>, with correct-match fraction w and sample size s; expected trials ≈ 1/w<sup>s</sup>. These averages are not success guarantees. Sampling odds do not directly equal runtime speedups: each trial also has a computational cost.</p>
+    <p class="method-bridge"><strong>How can two matches recover a full pose?</strong> They define the shared edge; the remaining matches supply the constraints needed to recover the pose.</p>
   </div>
 </section>
 
 <!-- ====================== FLAGSHIP PIPELINE DEMO =================== -->
 <section id="demo">
   <div class="container">
-    <h2 class="sec"><span class="no">1</span>Watch It Run</h2>
+    <h2 class="sec"><span class="no">2</span>From a Shared Edge to a Camera Pose</h2>
 
+    <ol class="method-flow" aria-label="Method overview">
+      <li><strong>Choose a shared edge</strong><span>Two sampled matches anchor the trial.</span></li>
+      <li><strong>Build triangle constraints</strong><span>Each other match adds a perspective-similar-triangle (PST) constraint.</span></li>
+      <li><strong>Keep significant peaks</strong><span>Agreement forms peaks; multiple peaks preserve possible pose ambiguities.</span></li>
+      <li><strong>Refine and compare</strong><span>Soft weights reduce large-residual influence; compare candidates by inlier support.</span></li>
+    </ol>
     <div class="demo-card">
       <div class="viz-holder" id="viz-pipeline" style="height:470px">
         <div class="viz-badge" id="pipe-badge">drag to orbit · step ①</div>
       </div>
-      <div class="pipe-steps">
-        <button class="chip-btn step-tab active" data-step="A">① Task</button>
-        <button class="chip-btn step-tab" data-step="B">② Vote</button>
-        <button class="chip-btn step-tab" data-step="C">③ Refine</button>
-        <span class="readout" id="pipe-readout" style="margin-left:auto">–</span>
+      <div class="pipe-info">
+      <div class="pipe-steps" role="group" aria-label="Pipeline stage">
+        <button class="chip-btn step-tab active" data-step="A">① Shared edge</button>
+        <button class="chip-btn step-tab" data-step="D">② Triangles</button>
+        <button class="chip-btn step-tab" data-step="B">③ Vote &amp; peaks</button>
+        <button class="chip-btn step-tab" data-step="C">④ Refine &amp; select</button>
       </div>
+      <div class="pipe-status"><span class="readout" id="pipe-readout">–</span></div>
       <p class="pipe-cap" id="pipe-cap"></p>
-      <div class="controls">
+      </div>
+      <div class="controls pipeline-controls">
         <div class="ctrl">
           <label for="pp-config">Configuration</label>
           <select id="pp-config">
@@ -147,25 +159,48 @@
           <input type="range" id="pp-outliers" min="0" max="95" value="50" step="5">
           <span class="val" id="pp-outliers-val">50%</span>
         </div>
-        <div class="ctrl">
+        <div class="ctrl" id="pp-peak-control" hidden><label for="pp-peak">Candidate</label><select id="pp-peak" aria-label="Pose candidate and refined inlier support"></select></div>
+        <div class="ctrl pipeline-actions">
           <button class="chip-btn primary active" id="pp-run">⏸ Pause motion</button>
           <button class="chip-btn" id="pp-newdata">New data</button>
         </div>
       </div>
     </div>
-    <p class="figcap"><b>Interactive Figure 1.</b> The same correspondences feed Task, Vote, and Refine. Vote replays every valid PST candidate from a data-only two-point trial; Refine replays the production dynamic soft-weighted Gauss–Newton schedule <span class="mono">[3, 4, ∞]</span>. Select a stage and replay it independently; the solver sees only the matches, not the explanatory inlier labels.</p>
+    <p class="figcap"><b>Interactive Figure 1.</b> Follow a shared edge and its triangles into the voting space, then inspect pose refinement. When the two anchor matches are correct, other correct matches tend to support a common peak. Near-degenerate configurations can produce several significant peaks; the algorithm retains these alternatives for refinement and comparison.</p>
   </div>
 </section>
 
 <!-- ===================== WHY 2 POINTS ============================ -->
 <section id="why2pt">
   <div class="container">
-    <h2 class="sec"><span class="no">2</span>Precision &amp; Speed</h2>
+    <h2 class="sec"><span class="no">3</span>Precision &amp; Speed</h2>
 
     <p>Fewer points per RANSAC sample make high-outlier estimation practical. The plots below separate the revised synthetic benchmark from the paper's real-image evidence.</p>
 
-    <h3 class="benchmark-subtitle"><span class="benchmark-index">2.1</span> Synthetic benchmark</h3>
+    <h3 class="benchmark-subtitle"><span class="benchmark-index">3.1</span> Synthetic benchmark</h3>
     <p class="benchmark-note">Revised C++ benchmark: three scene configurations, seven outlier rates, and ten trials per setting. “Accurate” means rotation error &lt; 5&deg; and relative translation error &lt; 10%; timing is full Python-call wall time.</p>
+
+    <div class="highlights benchmark-advantages" aria-label="RPnP++ synthetic benchmark advantages">
+      <article class="advantage-card">
+        <div class="advantage-label">01 / Outlier tolerance</div>
+        <h4>A wider usable outlier range</h4>
+        <div class="advantage-stat">90% &rarr; 97% <span>baseline limit to RPnP++</span></div>
+        <p>Most existing methods fail above 90% outliers. RPnP++ remains accurate up to 97% across all three scenes.</p>
+      </article>
+      <article class="advantage-card">
+        <div class="advantage-label">02 / Accuracy advantage</div>
+        <h4>High-outlier accuracy gain</h4>
+        <div class="advantage-stat">+10–80 pp <span>accuracy gain at 95% outliers</span></div>
+        <p>Across 80–95% outliers, RPnP++ gains 0–80 percentage points over the best competing method. At 95%, the gain is 10–80 points.</p>
+      </article>
+      <article class="advantage-card">
+        <div class="advantage-label">03 / Speed advantage</div>
+        <h4>Faster at matched accuracy</h4>
+        <div class="advantage-stat">up to 800&times; <span>faster on synthetic tests</span></div>
+        <p>Across the paired 5–95% range, RPnP++ reaches up to 800&times; speedup while preserving comparable or better pose accuracy.</p>
+      </article>
+    </div>
+    <p class="benchmark-note benchmark-footnote">The cards above summarize the revised C++ synthetic benchmark below. The speedup is the maximum observed against the compared solvers at comparable or better accuracy; it is not the sampling-probability ratio.</p>
 
     <div class="synthetic-fig-stack">
       <figure class="paper-fig">
@@ -181,8 +216,8 @@
     <blockquote class="benchmark-quote">
       <p><b>Takeaway.</b> Above 90% outlier rate, most existing methods fail to produce usable poses, while RPnP++ remains accurate up to 97% across all three scene configurations.</p>
     </blockquote>
-    <h3 class="benchmark-subtitle"><span class="benchmark-index">2.2</span> Real benchmark</h3>
-    <p class="benchmark-note">The following figures retain the page's existing real-image comparison material.</p>
+    <h3 class="benchmark-subtitle"><span class="benchmark-index">3.2</span> Real benchmark</h3>
+    <p class="benchmark-note">Original paper experiments: MATLAB implementation on the wide-baseline image-matching dataset (1,000 image pairs). These results are separate from the revised C++ synthetic benchmark above.</p>
 
     <div class="fig-grid">
       <figure class="paper-fig">
@@ -218,7 +253,7 @@
 <!-- ========================= RESULTS ============================= -->
 <section id="results">
   <div class="container">
-    <h2 class="sec"><span class="no">3</span>Experimental Evidence — Qualitative Results</h2>
+    <h2 class="sec"><span class="no">4</span>Experimental Evidence — Qualitative Results</h2>
     <p>Selected qualitative results from the paper's real-image and AR evaluations.</p>
 
     <div class="paperfig">
@@ -232,6 +267,30 @@
       <figcaption><b>Indoor AR.</b> Virtual objects anchored through the estimated pose.</figcaption>
     </div>
 
+  </div>
+</section>
+
+<!-- ===================== GEOMETRIC INTUITION ====================== -->
+<section id="geometry">
+  <div class="container">
+    <h2 class="sec"><span class="no">5</span>Geometry Behind the Method</h2>
+    <p class="geometry-intro">Two matches anchor the geometry. Every other match adds a triangle that can support—or disagree with—the same camera pose.</p>
+    <div class="geometry-layout">
+      <figure class="geometry-figure">
+        <a class="geometry-image" href="assets/fig/camera-geometry-complete.svg" target="_blank" rel="noopener" aria-label="Open the camera geometry diagram at full size">
+          <img src="assets/fig/camera-geometry-complete.svg" width="746" height="748" loading="lazy" alt="Camera center Oc at bottom left sends rays through image points pi toward 3D points Pi. The red P0–P1 edge is shared by triangles with P2 and P3. Smaller shaded triangles use control points marked with a tilde on the same rays.">
+          <span class="geometry-marker geometry-marker-edge" aria-hidden="true">1</span>
+          <span class="geometry-marker geometry-marker-triangles" aria-hidden="true">2</span>
+          <span class="geometry-marker geometry-marker-angles" aria-hidden="true">3</span>
+        </a>
+        <figcaption><math xmlns="http://www.w3.org/1998/Math/MathML" class="geometry-math"><msubsup><mi>P</mi><mi>i</mi><mi>c</mi></msubsup></math>: a 3D point in camera coordinates. <math xmlns="http://www.w3.org/1998/Math/MathML" class="geometry-math"><msubsup><mover accent="true"><mi>P</mi><mpadded height="+0.18em" voffset="0.18em"><mo>˜</mo></mpadded></mover><mi>i</mi><mi>c</mi></msubsup></math>: its control point on the same ray. <a href="assets/fig/camera-geometry-complete.svg" target="_blank" rel="noopener">View full-size diagram ↗</a></figcaption>
+      </figure>
+      <ol class="geometry-notes">
+        <li><span class="geometry-number">1</span><div><h3>Anchor the triangles with two matches</h3><p>The sampled matches define the <strong>red edge <math xmlns="http://www.w3.org/1998/Math/MathML" class="geometry-math"><mrow><msubsup><mi>P</mi><mn>0</mn><mi>c</mi></msubsup><msubsup><mi>P</mi><mn>1</mn><mi>c</mi></msubsup></mrow></math></strong>. Each other match adds a triangle, as illustrated by <math xmlns="http://www.w3.org/1998/Math/MathML" class="geometry-math"><msubsup><mi>P</mi><mn>2</mn><mi>c</mi></msubsup></math> and <math xmlns="http://www.w3.org/1998/Math/MathML" class="geometry-math"><msubsup><mi>P</mi><mn>3</mn><mi>c</mi></msubsup></math>.</p><p>From camera center <math xmlns="http://www.w3.org/1998/Math/MathML" class="geometry-math"><msub><mi>O</mi><mi>c</mi></msub></math>, image point <math xmlns="http://www.w3.org/1998/Math/MathML" class="geometry-math"><msub><mi>p</mi><mi>i</mi></msub></math> gives direction <math xmlns="http://www.w3.org/1998/Math/MathML" class="geometry-math"><msub><mi>v</mi><mi>i</mi></msub></math>, but the distance <math xmlns="http://www.w3.org/1998/Math/MathML" class="geometry-math"><msub><mi>d</mi><mi>i</mi></msub></math> to <math xmlns="http://www.w3.org/1998/Math/MathML" class="geometry-math"><msubsup><mi>P</mi><mi>i</mi><mi>c</mi></msubsup></math> is unknown. The triangle’s known shape helps constrain these depths.</p></div></li>
+        <li><span class="geometry-number">2</span><div><h3>Test the shape along the rays</h3><p>The <strong>shaded triangles</strong> share the smaller red edge <math xmlns="http://www.w3.org/1998/Math/MathML" class="geometry-math"><mrow><msubsup><mover accent="true"><mi>P</mi><mpadded height="+0.18em" voffset="0.18em"><mo>˜</mo></mpadded></mover><mn>0</mn><mi>c</mi></msubsup><msubsup><mover accent="true"><mi>P</mi><mpadded height="+0.18em" voffset="0.18em"><mo>˜</mo></mpadded></mover><mn>1</mn><mi>c</mi></msubsup></mrow></math>. Their control points <math xmlns="http://www.w3.org/1998/Math/MathML" class="geometry-math"><msubsup><mover accent="true"><mi>P</mi><mpadded height="+0.18em" voffset="0.18em"><mo>˜</mo></mpadded></mover><mi>i</mi><mi>c</mi></msubsup></math> lie on the same rays as <math xmlns="http://www.w3.org/1998/Math/MathML" class="geometry-math"><msubsup><mi>P</mi><mi>i</mi><mi>c</mi></msubsup></math>; the tilde marks the scaled construction.</p><p>A small triangle must match its corresponding large triangle in shape: equal angles and proportional sides. This <strong>PST constraint</strong> identifies geometrically consistent candidates.</p></div></li>
+        <li><span class="geometry-number">3</span><div><h3>Let the triangles agree on a pose</h3><p><strong><math xmlns="http://www.w3.org/1998/Math/MathML" class="geometry-math"><mi>θ</mi></math></strong> describes the smaller red edge’s direction in its projection plane. <strong><math xmlns="http://www.w3.org/1998/Math/MathML" class="geometry-math"><msub><mi>ω</mi><mrow><mn>2</mn><mi>p</mi></mrow></msub></math></strong> measures rotation around that edge from <math xmlns="http://www.w3.org/1998/Math/MathML" class="geometry-math"><msubsup><mi>n</mi><mn>2</mn><mi>c</mi></msubsup></math> (green normal arrow) to <math xmlns="http://www.w3.org/1998/Math/MathML" class="geometry-math"><msubsup><mi>n</mi><mi>p</mi><mi>c</mi></msubsup></math> (blue normal arrow).</p><p>Each triangle votes for valid candidates in this two-angle space. With correct anchors, correct matches tend to form common peaks. <strong>Keep significant peaks, refine their poses with soft weights, and select the pose with the most inlier support.</strong></p></div></li>
+      </ol>
+    </div>
   </div>
 </section>
 

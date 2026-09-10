@@ -13,6 +13,28 @@ const NAVY = 0x23406e, ACCENT = 0xa63d2f, GREEN = 0x2e7d32, RED = 0xc0392b,
 const DEG = 180 / Math.PI;
 const SELFTEST = location.search.indexOf('selftest') >= 0;
 
+// Sampling arithmetic is independent of the illustrative 3D scene.
+(function samplingComparison() {
+  const slider = $('sample-outliers');
+  if (!slider) return;
+  const number = value => value.toLocaleString('en-US', { maximumFractionDigits: 2 });
+  function update() {
+    const out = Number(slider.value), w = (100 - out) / 100;
+    $('sample-outliers-value').textContent = `${out}%`;
+    $('sample-inliers').textContent = `${100 - out}% correct matches`;
+    for (const size of [2, 3, 4]) {
+      const probability = w ** size;
+      $(`sample-prob-${size}`).textContent = `${Number((100 * probability).toFixed(6))}%`;
+      $(`sample-trials-${size}`).textContent = number(1 / probability);
+    }
+    $('sample-takeaway').innerHTML = out === 0
+      ? 'With no outliers, every sample is all-correct. As the outlier rate rises, smaller samples become much more likely to be all-correct.'
+      : `At ${out}% outliers, an all-correct sample is approximately <strong>${number(1 / w)}× more likely</strong> with two matches than with three, and <strong>${number(1 / (w * w))}× more likely</strong> than with four.`;
+  }
+  slider.addEventListener('input', update);
+  update();
+})();
+
 /* ============================ utilities ============================ */
 
 function makeRenderer(holder) {
@@ -259,7 +281,7 @@ if (SELFTEST) {
   }
   furnA.add(gridGround(16, 16));
   sceneA.add(furnA);
-  let dynA = null;
+  let dynA = null, triangleGroup = null, triangleIndex = -1;
 
   // The refinement view reuses the same renderer for a small, clean 3D pose inset.
   const poseScene = makeScene();
@@ -269,7 +291,7 @@ if (SELFTEST) {
   let poseStatic = null, poseDyn = null, poseKey = null;
 
   const legend = document.createElement('div');
-  legend.style.cssText = 'position:absolute;left:12px;bottom:10px;font-size:11.5px;color:#5c6575;' +
+  legend.style.cssText = 'position:absolute;left:12px;bottom:10px;max-width:calc(100% - 24px);font-size:11.5px;color:#5c6575;' +
     'background:rgba(255,253,249,.88);padding:6px 10px;border-radius:8px;border:1px solid #e6e2d9;';
   legend.innerHTML = '<span style="color:#2e7d32;font-weight:700">●</span> correct claim' +
     '&nbsp;&nbsp;<span style="color:#c0392b;font-weight:700">●</span> fabricated claim' +
@@ -320,7 +342,7 @@ if (SELFTEST) {
 
   /* ---------- shared data through all three steps ---------- */
   let data = null, baseData = null, baseKey = '', trial = null, voteEvents = [], ref = null, iBase = [0, 1];
-  let frameIdx = 0, acc = 0;
+  let frameIdx = 0, acc = 0, selectedPeak = 0, peakRefs = [];
 
   function pickBaseCandidates() {
     const X = data.X;
@@ -379,6 +401,28 @@ if (SELFTEST) {
     }
     if (!trial) { trial = firstTrial; ref = firstRef; if (firstPair) iBase = firstPair; }
     if (trial && !ref) ref = { history: [] };
+    peakRefs = [];
+    selectedPeak = 0;
+    if (trial) {
+      peakRefs = trial.peaks.map(peak => {
+        const pose = PST.poseFromPeak(trial, data.X, data.V, peak);
+        return pose && PST.swgnRefine(pose.R, pose.t, data.X, data.V, { eps: EPS, iters: 4, converge: 1e-4 });
+      });
+      const support = result => result && result.success ? Array.from(result.err).filter(e => e <= EPS).length : -1;
+      peakRefs.forEach((result, index) => { if (support(result) > support(peakRefs[selectedPeak])) selectedPeak = index; });
+      ref = peakRefs[selectedPeak] || { history: [] };
+    }
+    const chooser = $('pp-peak');
+    chooser.replaceChildren();
+    peakRefs.forEach((result, index) => {
+      const option = document.createElement('option');
+      const support = result && result.success ? Array.from(result.err).filter(e => e <= EPS).length : 0;
+      option.value = index;
+      option.textContent = `Peak ${index + 1} · ${result && result.success ? support + ' inliers' : 'refinement unavailable'}${index === selectedPeak ? ' · best in this trial' : ''}`;
+      chooser.appendChild(option);
+    });
+    chooser.value = String(selectedPeak);
+    chooser.disabled = !peakRefs.length;
     voteEvents = makeVoteEvents();
     if (!trial || !trial.peaks || !trial.peaks.length) {
       ref = { history: [] };
@@ -564,7 +608,43 @@ if (SELFTEST) {
       dynA.add(line([X, dot], RED, { opacity: 0.22 }));
       dynA.add(sphere(dot, 0.028, RED, 0.8));
     }
+    // Mark the two anchors and their observed image positions independently of truth labels.
+    const edge = iBase.map(i => data.X[i]);
+    dynA.add(line(edge, GOLD));
+    iBase.forEach((i, k) => {
+      dynA.add(sphere(data.X[i], 0.14, GOLD));
+      const label = textSprite(`P${k} · anchor`, { color: '#956c16', scale: 0.38 });
+      label.position.set(...data.X[i]); label.position.y += 0.25; dynA.add(label);
+      const v = data.V[i], scale = IPZ / v[2];
+      const dot = [v[0] * scale, v[1] * scale, IPZ];
+      dynA.add(sphere(dot, 0.065, GOLD));
+      dynA.add(line([data.X[i], dot], GOLD, { opacity: 0.8 }));
+    });
     sceneA.add(dynA);
+    updateTriangle(-1);
+  }
+
+  function updateTriangle(index) {
+    if (index === triangleIndex) return;
+    triangleIndex = index;
+    if (triangleGroup) {
+      sceneA.remove(triangleGroup);
+      triangleGroup.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) { if (o.material.map) o.material.map.dispose(); o.material.dispose(); } });
+      triangleGroup = null;
+    }
+    if (index < 0) return;
+    triangleGroup = new THREE.Group();
+    const points = [data.X[iBase[0]], data.X[iBase[1]], data.X[index]];
+    triangleGroup.add(line([...points, points[0]], GOLD));
+    const geometry = new THREE.BufferGeometry().setFromPoints(points.map(p => new THREE.Vector3(...p)));
+    triangleGroup.add(new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: GOLD, opacity: 0.35, transparent: true, side: THREE.DoubleSide, depthWrite: false })));
+    triangleGroup.add(sphere(points[2], 0.14, GOLD));
+    const v = data.V[index], scale = IPZ / v[2], dot = [v[0] * scale, v[1] * scale, IPZ];
+    triangleGroup.add(line([points[2], dot], GOLD));
+    triangleGroup.add(sphere(dot, 0.06, GOLD));
+    const label = textSprite(`Pᵢ #${index}`, { color: '#956c16', scale: 0.4 });
+    label.position.set(...points[2]); label.position.y += 0.25; triangleGroup.add(label);
+    sceneA.add(triangleGroup);
   }
 
   function ensurePoseStatic() {
@@ -624,7 +704,7 @@ if (SELFTEST) {
   const badge = $('pipe-badge'), cap = $('pipe-cap'), ro = $('pipe-readout');
   const runBtn = $('pp-run');
   let stepDone = false;
-  const stepNames = { B: 'Vote', C: 'Refine' };
+  const stepNames = { D: 'Triangles', B: 'Vote & peaks', C: 'Refine' };
   function updateRunButton() {
     if (!runBtn) return;
     if (S.step === 'A') {
@@ -639,13 +719,10 @@ if (SELFTEST) {
   }
 
   function capText(step) {
-    if (step === 'A') {
-      const k = S.kOut || 0;
-      const layoutName = S.cfg === 'quasi' ? 'quasi-singular' : S.cfg === 'planar' ? 'planar' : 'ordinary';
-      return `<b>① The task.</b> A calibrated camera watches a <b>${layoutName}</b> icosahedron layout at an arbitrary pose. Its <b>twelve vertices</b> are matched to twelve dots on the framed image plane &mdash; all twelve claims are correct (<span style="color:#2e7d32;font-weight:600">green</span>). Scattered around them are <b>${k} fabricated matches</b> (<span style="color:#c0392b;font-weight:600">red</span>): photo dots paired with points they never saw. Recover [R|t] without knowing which is which. Use the tabs and the replay control to inspect the same ${data ? data.X.length : N_POINTS} correspondences in steps ②&ndash;③.`;
-    }
-    if (step === 'B') return `<b>② Vote.</b> One usable two-point sample defines a shared edge. Every surviving correspondence/θ candidate contributes one vote in the bounded <span class="mono">(θ, ω₂ₚ)</span> space; a point can contribute several candidates, while a gray × marks a point with no valid candidate. Follow the highlighted 3D point and its observed image dot on the left into the ballot box: agreement becomes density.`;
-    return `<b>③ Refine.</b> The consensus cell gives the integer-bin Hough hypothesis. The production finalizer then applies dynamic soft-weighted Gauss–Newton in three stages, <span class="mono">[3, 4, ∞]</span>. The left inset shows the fixed Hough pose in gray and the current pose in blue; on the right, compare the same observations with the changing predictions and residuals.`;
+    if (step === 'A') return '<b>① Shared edge.</b> Recover the camera pose from 3D–2D matches containing errors. The two gold anchors define one shared edge. Green and red distinguish correct and incorrect matches for explanation; the solver does not receive these labels. This view replays one usable trial.';
+    if (step === 'D') return '<b>② Triangle constraints.</b> Keep the gold edge fixed and add each other match in turn. The highlighted triangle links known 3D geometry to three observed image rays. PST tests whether a triangle formed along those rays can be similar to the model triangle. Its valid candidates then enter the common voting space.';
+    if (step === 'B') return '<b>③ Vote & peaks.</b> Each valid triangle candidate votes at (θ, ω₂ₚ). With correct anchors, correct matches tend to agree; incorrect matches usually scatter. Circles mark retained peaks once voting completes. Multiple significant peaks preserve alternative poses in ambiguous configurations; this illustrative trial need not always produce multiple peaks.';
+    return '<b>④ Refine & select.</b> Refine each retained candidate and compare its inlier support. The selector lists the results for this trial and starts with the best supported candidate. Soft weights reduce the influence of large residuals without immediately discarding potentially correct matches. Gray shows the initial pose; blue shows the selected candidate as it is refined.';
   }
 
   function goto(step, autoplay) {
@@ -655,19 +732,22 @@ if (SELFTEST) {
     acc = 0;
     stepDone = false;
     if (autoplay !== undefined) S.running = autoplay;
-    stageA.style.display = step === 'A' ? 'block' : 'none';
+    stageA.style.display = step === 'A' || step === 'D' ? 'block' : 'none';
+    if (step !== 'D') updateTriangle(-1);
+    $('pp-peak-control').hidden = step !== 'C';
     stageB.style.display = step === 'B' ? 'block' : 'none';
     stageC.style.display = step === 'C' ? 'block' : 'none';
-    tabs.forEach(t => t.classList.toggle('active', t.dataset.step === step));
+    tabs.forEach(t => { t.classList.toggle('active', t.dataset.step === step); t.setAttribute('aria-pressed', String(t.dataset.step === step)); });
     badge.style.display = step === 'A' ? '' : 'none';
     cap.innerHTML = capText(step);
     updateRunButton();
     // Step B/C reuse the flagship renderer as an offscreen texture. Restore the
     // full-size task viewport whenever the user returns to step A.
-    if (step === 'A') layout();
+    if (step === 'A' || step === 'D') layout();
     if (step === 'A') {
-      ro.textContent = `${POLY.length} correct claims · ${S.kOut || 0} wrong matches`;
+      ro.textContent = `${data.X.length - (S.kOut || 0)} correct matches · ${S.kOut || 0} wrong matches`;
     }
+    tick(0);
   }
 
   tabs.forEach(t => t.addEventListener('click', () => goto(t.dataset.step, false)));
@@ -714,7 +794,7 @@ if (SELFTEST) {
     x.strokeStyle = '#e6e2d9'; x.lineWidth = 1.2; x.strokeRect(taskX, taskY, taskW, taskH);
     x.fillStyle = 'rgba(255,253,249,.9)'; x.fillRect(taskX + 8, taskY + 8, Math.min(245, taskW - 16), 20);
     const taskConfigLabel = S.cfg === 'quasi' ? 'quasi-singular' : S.cfg === 'planar' ? 'planar' : 'ordinary';
-    x.fillStyle = '#5c6575'; x.font = '600 11px Helvetica'; x.fillText(`Task view · ${taskConfigLabel} layout · 120 correspondences`, taskX + 14, taskY + 22);
+    x.fillStyle = '#5c6575'; x.font = '600 11px Helvetica'; x.fillText(`Shared edge · ${taskConfigLabel} · ${data.X.length} matches`, taskX + 14, taskY + 22);
 
     const projectTask = (point) => {
       const q = new THREE.Vector3(point[0], point[1], point[2]).project(taskCamera);
@@ -788,16 +868,19 @@ if (SELFTEST) {
         x.fillStyle = 'rgba(35,64,110,.76)'; x.beginPath(); x.arc(px, py, r, 0, 7); x.fill();
       }
     });
-    const p = trial.peaks[0];
-    const ppx = hmX + (p.j + 0.5) * cellW, ppy = hmY + hmH - (p.k + 0.5) * cellH;
     if (focus) {
       const fp = votePos.get(voteIndex), fx = fp ? fp.x : hmX + (focus.j + 0.5) * cellW, fy = fp ? fp.y : hmY + hmH - (focus.k + 0.5) * cellH;
       x.strokeStyle = '#f2b84b'; x.lineWidth = 1.6; x.beginPath(); x.arc(fx, fy, Math.max(4.5, Math.min(8, Math.min(cellW, cellH) * 1.15)), 0, 7); x.stroke();
       if (focusScreen && !compact) { x.strokeStyle = 'rgba(201,138,27,.8)'; x.setLineDash([4, 3]); x.beginPath(); x.moveTo(focusScreen.x, focusScreen.y); x.lineTo(fx, fy); x.stroke(); x.setLineDash([]); }
     }
     if (done) {
-      x.strokeStyle = '#c98a1b'; x.lineWidth = 2.2; x.setLineDash([5, 4]); x.beginPath(); x.arc(ppx, ppy, 13, 0, 7); x.stroke(); x.setLineDash([]);
-      x.fillStyle = '#c98a1b'; x.font = '600 11px Helvetica'; x.fillText('consensus peak → refine', Math.min(ppx + 16, hmX + hmW - 130), ppy - 10);
+      trial.peaks.forEach((peak, index) => {
+        const px = hmX + (peak.j + 0.5) * cellW, py = hmY + hmH - (peak.k + 0.5) * cellH;
+        x.strokeStyle = index === selectedPeak ? '#a63d2f' : '#23406e'; x.lineWidth = 2;
+        x.beginPath(); x.arc(px, py, 10, 0, 7); x.stroke();
+        x.fillStyle = x.strokeStyle; x.font = '600 10px Helvetica';
+        x.fillText(`${index + 1}`, Math.min(px + 12, hmX + hmW - 16), Math.max(hmY + 12, py - 8));
+      });
     }
     x.fillStyle = '#5c6575'; x.font = '11px Helvetica';
     x.fillText('blue dot = candidate vote', hmX + hmW - 168, hmY + 15);
@@ -805,7 +888,7 @@ if (SELFTEST) {
     x.fillStyle = '#c98a1b'; x.fillText('gold = local density', hmX + hmW - 168, hmY + 45);
     const occupied = Object.keys(heat).length;
     const accepted = shownVotes.filter(v => v.valid !== false).length;
-    ro.textContent = `${shownVotes.length}/${totalVotes} candidate events · ${accepted} votes · ${occupied} occupied cells` + (done ? ` · peak support ${Math.round(p.score)}` : ` · Pᵢ #${focus ? focus.i : '–'} highlighted`);
+    ro.textContent = `${shownVotes.length}/${totalVotes} candidate events · ${accepted} votes · ${occupied} occupied cells` + (done ? ` · ${trial.peaks.length} retained peaks` : ` · Pᵢ #${focus ? focus.i : '–'} highlighted`);
   }
 
   /* ================= STEP C drawing : refinement ================= */
@@ -854,7 +937,7 @@ if (SELFTEST) {
 
     x.fillStyle = '#1d2534'; x.font = '600 13px Helvetica'; x.textAlign = 'left';
     const orderLabel = st.order < 0 ? 'hard inlier gate (∞)' : `soft weights (${st.order})`;
-    x.fillText(`③ Refine · DSW-GN stage ${Math.min(3, (st.stage || 0) + 1)}/3 · ${orderLabel} · iteration ${st.iteration || 0}`, 18, 20);
+    x.fillText(compact ? `④ Refine · stage ${Math.min(3, (st.stage || 0) + 1)}/3 · iteration ${st.iteration || 0}` : `④ Refine · stage ${Math.min(3, (st.stage || 0) + 1)}/3 · ${orderLabel} · iteration ${st.iteration || 0}`, 18, 20);
     x.fillStyle = '#8b93a1'; x.font = '11px Helvetica';
     x.fillText('the same pose is shown in 3D and in its image residuals', 18, 35);
 
@@ -950,6 +1033,13 @@ if (SELFTEST) {
     if (S.step === 'A') {
       orbitA.update(S.running ? dt : 0);
       rendererA.render(sceneA, cameraA);
+    } else if (S.step === 'D') {
+      const others = data.X.map((_, i) => i).filter(i => !iBase.includes(i));
+      const index = others[Math.floor(phaseMs / 900) % others.length];
+      updateTriangle(index);
+      orbitA.update(0);
+      rendererA.render(sceneA, cameraA);
+      ro.textContent = `anchors #${iBase[0]}, #${iBase[1]} · third match #${index} · ${others.length} shared-edge triangles`;
     } else if (S.step === 'B') {
       drawB();
       if (S.running && trial && phaseMs > voteEvents.length * VOTE_T * 1000 + HOLD_B) {
@@ -970,6 +1060,12 @@ if (SELFTEST) {
   }
 
   /* ---------- controls ---------- */
+  $('pp-peak').addEventListener('change', e => {
+    selectedPeak = Number(e.target.value);
+    ref = peakRefs[selectedPeak] || { history: [] };
+    poseKey = null;
+    goto('C', true);
+  });
   $('pp-config').addEventListener('change', e => { S.cfg = e.target.value; run(false); });
   const sl = $('pp-outliers');
   sl.addEventListener('input', () => {
